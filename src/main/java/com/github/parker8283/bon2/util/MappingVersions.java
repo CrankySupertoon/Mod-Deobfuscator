@@ -157,7 +157,7 @@ public class MappingVersions {
     }
 
     public static enum Type {
-        SNAPSHOT, STABLE, OFFICIAL;
+        SNAPSHOT_MCP, STABLE_MCP, MCP, OFFICIAL;
     }
 
     public static abstract class MappingVersion implements Comparable<MappingVersion> {
@@ -238,13 +238,13 @@ public class MappingVersions {
 
     public static class StableMappingVersion extends MappingVersion {
         protected StableMappingVersion(String ver) {
-            super(Type.STABLE, ver, FORGE_MAVEN, MCP_ROOT + "mcp_stable_nodoc/" + ver + "/mcp_stable_nodoc-" + ver + ".zip");
+            super(Type.STABLE_MCP, ver, FORGE_MAVEN, MCP_ROOT + "mcp_stable_nodoc/" + ver + "/mcp_stable_nodoc-" + ver + ".zip");
         }
     }
 
     public static class SnapshotMappingVersion extends MappingVersion {
         protected SnapshotMappingVersion(String ver) {
-            super(Type.SNAPSHOT, ver, FORGE_MAVEN, MCP_ROOT + "mcp_snapshot_nodoc/" + ver + "/mcp_snapshot_nodoc-" + ver + ".zip");
+            super(Type.SNAPSHOT_MCP, ver, FORGE_MAVEN, MCP_ROOT + "mcp_snapshot_nodoc/" + ver + "/mcp_snapshot_nodoc-" + ver + ".zip");
         }
     }
 

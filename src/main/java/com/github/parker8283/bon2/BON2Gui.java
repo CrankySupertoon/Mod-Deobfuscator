@@ -38,7 +38,7 @@ import net.minecraftforge.srgutils.MinecraftVersion;
 
 public class BON2Gui extends JFrame {
 
-    public static final String ERROR_DIALOG_TITLE = "Error - BON2";
+    public static final String ERROR_DIALOG_TITLE = "Error - Mod Deobfuscator";
     private static final String PREFS_KEY_MC_VERSION = "mcVer";
     private static final String PREFS_KEY_MAP_VERSION = "mapVer";
     public static final String PREFS_KEY_OPEN_LOC = "openLoc";
@@ -55,7 +55,7 @@ public class BON2Gui extends JFrame {
 
     public BON2Gui() {
         setMinimumSize(new Dimension(550, 240));
-        setTitle("BON2");
+        setTitle("Mod Deobfuscator");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setBounds(100, 100, 550, 240);
         JPanel contentPane = new JPanel();

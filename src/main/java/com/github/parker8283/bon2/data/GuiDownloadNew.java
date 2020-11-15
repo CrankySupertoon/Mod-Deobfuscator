@@ -257,17 +257,19 @@ public class GuiDownloadNew extends JFrame {
             Map<MappingVersions.Type, List<MappingVersion>> types = new EnumMap<>(MappingVersions.Type.class);
             for (MappingVersion mapver : data.get(mcver))
                 types.computeIfAbsent(mapver.getType(), t -> new ArrayList<>()).add(mapver);
-
+            DefaultMutableTreeNode mcp_mappings = new DefaultMutableTreeNode("MCP");
+            mcnode.add(mcp_mappings);
             types.forEach((t,l) -> {
+                
                 switch (t) {
-                    case STABLE:
+                    case STABLE_MCP:
                         DefaultMutableTreeNode stables = new DefaultMutableTreeNode("Stable");
-                        mcnode.add(stables);
+                        mcp_mappings.add(stables);
                         l.stream().sorted(Collections.reverseOrder()).forEach(e -> stables.add(new NameableDefaultMutableTreeNode(e.getVersion() + "", e)));
                         break;
-                    case SNAPSHOT:
+                    case SNAPSHOT_MCP:
                         DefaultMutableTreeNode snaps = new DefaultMutableTreeNode("Snapshot");
-                        mcnode.add(snaps);
+                        mcp_mappings.add(snaps);
 
                         Map<Integer, Map<Integer, List<MappingVersion>>> versionsUnsorted = l.stream()
                                 .collect(Collectors.groupingBy(e -> e.getVersion() / 10000, Collectors.groupingBy(e -> (e.getVersion() / 100) % 100)));
@@ -289,7 +291,7 @@ public class GuiDownloadNew extends JFrame {
                         });
                         break;
                     case OFFICIAL:
-                        mcnode.add(new NameableDefaultMutableTreeNode("Official", l.get(0)));
+                        mcnode.add(new NameableDefaultMutableTreeNode("Mojang", l.get(0)));
                         break;
                 }
             });
