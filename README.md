@@ -2,6 +2,7 @@
 
 **Mod Deobfuscator** is your mod deobfuscator companion.
 
+It is a fork of Lex Manos's BON2 which was forked by Lex from Parker8283's repository that was continued by tterrag1098. BON2 was a rewrite of Immibis's bearded-octo-nemesis for ForgeGradle.
 
 ## 🚀 Getting Started
 Below you will find anything you need to know. If you want to download a build you can do it via CurseForge. 
