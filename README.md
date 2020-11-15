@@ -2,6 +2,7 @@
 
 **Mod Deobfuscator** is your mod deobfuscator companion.
 
+It is a fork of Lex Manos's ModDeobf which was forked by Lex from Parker8283's repository that was continued by tterrag1098. ModDeobf was a rewrite of Immibis's bearded-octo-nemesis for ForgeGradle.
 
 ## 🚀 Getting Started
 Below you will find anything you need to know. If you want to download a build you can do it via CurseForge. 
@@ -24,7 +25,7 @@ Latest: [Can be found here](https://www.github.com/CrankySupertoon/mod-deobf)
 
 ## 🎓 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the LGPLv3 License - see the [LICENSE](LICENSE) file for details
 
 [discordImg]: https://img.shields.io/discord/671902942466408478.svg?logo=discord&logoWidth=18&colorB=7289DA&style=for-the-badge
 [discordLink]: https://discord.gg/F55qYKm

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>C:\Users\phane\Desktop\ModDeobf\build\libs\ModDeobf-2.5.0-all.jar</jar>
+  <outfile>C:\Users\phane\Desktop\ModDeobf\build\libs\ModDeobf-2.5.0.exe</outfile>
+  <errTitle>Java Missing</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://adoptopenjdk.net/</downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>C:\Users\phane\Desktop\ModDeobf\icon.ico</icon>
+  <jre>
+    <path></path>
+    <bundledJre64Bit>false</bundledJre64Bit>
+    <bundledJreAsFallback>false</bundledJreAsFallback>
+    <minVersion>1.8.0_1</minVersion>
+    <maxVersion>1.8.0_999</maxVersion>
+    <jdkPreference>preferJdk</jdkPreference>
+    <runtimeBits>64/32</runtimeBits>
+  </jre>
+  <versionInfo>
+    <fileVersion>2.5.0.0</fileVersion>
+    <txtFileVersion>LGPLv3</txtFileVersion>
+    <fileDescription>A Deobuscator for Minecraft Mods</fileDescription>
+    <copyright>LGPLv3</copyright>
+    <productVersion>2.5.0.0</productVersion>
+    <txtProductVersion>LGPLv3</txtProductVersion>
+    <productName>Mod Deobfuscator</productName>
+    <companyName>Cranky Supertoon</companyName>
+    <internalName>ModDeobf</internalName>
+    <originalFilename>moddeobfuscator-2.5.0.exe</originalFilename>
+    <trademarks></trademarks>
+    <language>ENGLISH_US</language>
+  </versionInfo>
+  <messages>
+    <startupErr>An error occurred while starting the application.</startupErr>
+    <bundledJreErr>This application was configured to use a bundled Java Runtime Environment but the runtime is missing or corrupted.</bundledJreErr>
+    <jreVersionErr>This application requires a Java Runtime Environment. You can obtain one here https://adoptopenjdk.net/</jreVersionErr>
+    <launcherErr>The registry refers to a nonexistent Java Runtime Environment installation or the runtime is corrupted.</launcherErr>
+    <instanceAlreadyExistsMsg>An application instance is already running.</instanceAlreadyExistsMsg>
+  </messages>
+</launch4jConfig>

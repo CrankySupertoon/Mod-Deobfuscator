@@ -1,0 +1,357 @@
+package com.crankysupertoon.moddeobf;
+
+import java.awt.Dimension;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Predicate;
+import java.util.prefs.Preferences;
+
+import javax.swing.*;
+import javax.swing.GroupLayout.Alignment;
+import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.border.EmptyBorder;
+
+import com.crankysupertoon.moddeobf.data.BONFiles;
+import com.crankysupertoon.moddeobf.data.GuiDownloadNew;
+import com.crankysupertoon.moddeobf.gui.BrowseListener;
+import com.crankysupertoon.moddeobf.gui.GUIProgressListener;
+import com.crankysupertoon.moddeobf.gui.JarDropTarget;
+import com.crankysupertoon.moddeobf.gui.LinuxBrowseListener;
+import com.crankysupertoon.moddeobf.gui.SimpleRefreshListener;
+import com.crankysupertoon.moddeobf.gui.StartListener;
+import com.crankysupertoon.moddeobf.util.BONUtils;
+import com.crankysupertoon.moddeobf.util.DownloadUtils;
+import com.crankysupertoon.moddeobf.util.MCPVersions;
+import com.crankysupertoon.moddeobf.util.MappingVersions;
+import com.crankysupertoon.moddeobf.util.MappingVersions.MappingVersion;
+import com.crankysupertoon.moddeobf.util.MCPVersions.MCPVersion;
+import com.crankysupertoon.moddeobf.util.MinecraftVersions;
+import com.crankysupertoon.moddeobf.util.OSUtils;
+
+import net.minecraftforge.srgutils.MinecraftVersion;
+
+public class ModDeobfGui extends JFrame {
+
+    public static final String ERROR_DIALOG_TITLE = "Error - Mod Deobfuscator";
+    private static final String PREFS_KEY_MC_VERSION = "mcVer";
+    private static final String PREFS_KEY_MAP_VERSION = "mapVer";
+    public static final String PREFS_KEY_OPEN_LOC = "openLoc";
+    public static final String PREFS_KEY_SAVE_LOC = "closeLoc";
+
+    private static final long serialVersionUID = -619289399889088924L;
+
+    public final Preferences prefs = Preferences.userNodeForPackage(ModDeobfGui.class);
+
+    private JTextField inputJarLoc;
+    private JTextField outputJarLoc;
+    private JLabel lblProgressText;
+    private JProgressBar masterProgress;
+
+    public ModDeobfGui() {
+        setMinimumSize(new Dimension(550, 240));
+        setTitle("Mod Deobfuscator");
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setBounds(100, 100, 550, 240);
+        JPanel contentPane = new JPanel();
+        contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+        setContentPane(contentPane);
+
+        JLabel lblInput = new JLabel("Obfuscated Mod");
+        lblInput.setHorizontalAlignment(SwingConstants.CENTER);
+
+        inputJarLoc = new JTextField();
+        inputJarLoc.setColumns(10);
+        inputJarLoc.setDropTarget(new JarDropTarget(this, path -> {
+            inputJarLoc.setText(path);
+            outputJarLoc.setText(path.replace(".jar", "-deobf.jar"));
+        }));
+
+        JButton btnBrouseInput = new JButton("Browse");
+
+        if (OSUtils.getOS() != OSUtils.OS.Linux) {
+            btnBrouseInput.addMouseListener(new BrowseListener(this, true, inputJarLoc));
+        } else {
+            btnBrouseInput.addMouseListener(new LinuxBrowseListener(this, true, inputJarLoc));
+        }
+
+        JLabel lblOutput = new JLabel("Deoubscated Mod");
+        lblOutput.setHorizontalAlignment(SwingConstants.CENTER);
+
+        outputJarLoc = new JTextField();
+        outputJarLoc.setColumns(10);
+        outputJarLoc.setDropTarget(new JarDropTarget(this, path -> outputJarLoc.setText(path)));
+
+        JButton btnBrouseOutput = new JButton("Browse");
+
+        if (OSUtils.getOS() != OSUtils.OS.Linux) {
+            btnBrouseOutput.addMouseListener(new BrowseListener(this, false, outputJarLoc));
+        } else {
+            btnBrouseOutput.addMouseListener(new LinuxBrowseListener(this, false, outputJarLoc));
+        }
+
+        //======================================================================================
+        // Minecraft Versions
+        //======================================================================================
+        JLabel lblMinecraftVer = new JLabel("Minecraft");
+        lblMinecraftVer.setHorizontalAlignment(SwingConstants.CENTER);
+        JComboBox<MinecraftVersion> cmbMinecraftVers = new JComboBox<>();
+        JButton btnMinecraftVerRefresh = new JButton("Refresh");
+        JButton btnMinecraftVerDownload = new JButton("Download");
+        Runnable mcVerRefreshCallback = () -> {
+            Object selected = cmbMinecraftVers.getSelectedItem();
+            cmbMinecraftVers.removeAllItems();
+            MinecraftVersions.getKnownVersions(true).stream().filter(v -> MCPVersions.get(v) != null).forEach(v -> cmbMinecraftVers.insertItemAt(v, 0));
+            cmbMinecraftVers.setSelectedItem(selected);
+        };
+        mcVerRefreshCallback.run();
+        btnMinecraftVerRefresh.addMouseListener(new SimpleRefreshListener(mcVerRefreshCallback));
+
+        if (!comboBoxSelect(cmbMinecraftVers, prefs.get(PREFS_KEY_MC_VERSION, "")) && cmbMinecraftVers.getItemCount() > 0)
+            cmbMinecraftVers.setSelectedIndex(0);
+
+        MCPVersion mcpver = MCPVersions.get((MinecraftVersion)cmbMinecraftVers.getSelectedItem());
+        Predicate<MCPVersion> mcNeedsDownload = (ver) -> {
+            if (ver == null) return false;
+            if (!ver.getTarget().exists()) return true;
+            return !new File(BONFiles.FG3_MC_CACHE, ver.getMCVersion() + "/client.jar").exists() ||
+                   !new File(BONFiles.FG3_MC_CACHE, ver.getMCVersion() + "/server.jar").exists();
+        };
+        btnMinecraftVerDownload.setEnabled(mcNeedsDownload.test(mcpver));
+
+        cmbMinecraftVers.addActionListener(e -> {
+            MinecraftVersion selected = (MinecraftVersion)cmbMinecraftVers.getSelectedItem();
+            if (selected == null) {
+                prefs.remove(PREFS_KEY_MC_VERSION);
+                btnMinecraftVerDownload.setEnabled(false);
+            } else {
+                prefs.put(PREFS_KEY_MC_VERSION, selected.toString());
+                btnMinecraftVerDownload.setEnabled(mcNeedsDownload.test(MCPVersions.get(selected)));
+            }
+        });
+        btnMinecraftVerDownload.addActionListener(e -> {
+            btnMinecraftVerDownload.setEnabled(false);
+            MinecraftVersion selected = (MinecraftVersion)cmbMinecraftVers.getSelectedItem();
+            MCPVersion smcver = MCPVersions.get(selected);
+            if (smcver == null) {
+                lblProgressText.setText("No Minecraft version selected");
+                return;
+            }
+
+            if (!mcNeedsDownload.test(smcver)) {
+                lblProgressText.setText("Files already exist!");
+                return;
+            }
+
+            new Thread(() -> {
+                Map<String, URL> urls = MinecraftVersions.getDownloadUrls(selected);
+                Map<File, URL> files = new HashMap<>();
+                files.put(smcver.getTarget(), BONUtils.toUrl(smcver.getUrl()));
+                if (urls.containsKey("client"))
+                    files.put(new File(BONFiles.FG3_MC_CACHE, smcver.getMCVersion() + "/client.jar"), urls.get("client"));
+                if (urls.containsKey("server"))
+                    files.put(new File(BONFiles.FG3_MC_CACHE, smcver.getMCVersion() + "/server.jar"), urls.get("server"));
+
+                boolean failed = false;
+                for (Entry<File, URL> entry : files.entrySet()) {
+                    File target = entry.getKey();
+                    URL url = entry.getValue();
+                    try {
+                        SwingUtilities.invokeLater(() -> lblProgressText.setText("Downloading " + target.getName()));
+                        if (!DownloadUtils.downloadWithCache(url, target, false, false, new GUIProgressListener(lblProgressText, masterProgress))) {
+                            if (target.exists())
+                                target.delete();
+                            SwingUtilities.invokeLater(() -> {
+                                lblProgressText.setText("Download Failed");
+                                btnMinecraftVerDownload.setEnabled(true);
+                            });
+                            failed = true;
+                        }
+                    } catch (IOException ex) {
+                        System.out.println("Failed to download: " + url + " to " + target.getAbsolutePath());
+                        ex.printStackTrace();
+                        if (target.exists())
+                            target.delete();
+                        SwingUtilities.invokeLater(() -> {
+                            lblProgressText.setText("Failed to download: " + ex.getMessage());
+                            btnMinecraftVerDownload.setEnabled(true);
+                        });
+                        failed = true;
+                    }
+                }
+                if (!failed)
+                    SwingUtilities.invokeLater(() -> lblProgressText.setText("Download Complete"));
+            }).start();
+        });
+        //======================================================================================
+
+
+        //======================================================================================
+        //Mapping Versions
+        //======================================================================================
+        JLabel lblMappingsVer = new JLabel("Mappings");
+        lblMappingsVer.setHorizontalAlignment(SwingConstants.CENTER);
+        JComboBox<MappingVersion> cmbMappingVersions = new JComboBox<>();
+        JButton btnMappingVerDownload = new JButton("Download");
+        JButton btnMappingVerRefresh = new JButton("Refresh");
+
+        if (MappingVersions.getKnownVersions().isEmpty())
+            JOptionPane.showMessageDialog(this, "Could not load MCP versions from web, mapping versions may be incomplete.", "Warning", JOptionPane.WARNING_MESSAGE);
+
+        Runnable mapVerRefreshCallback = () -> {
+            Object selected = cmbMappingVersions.getSelectedItem();
+            cmbMappingVersions.removeAllItems();
+            MappingVersions.getExistingVersions().forEach(v -> cmbMappingVersions.insertItemAt(v, 0));
+            cmbMappingVersions.setSelectedItem(selected);
+        };
+
+        mapVerRefreshCallback.run();
+        btnMappingVerRefresh.addMouseListener(new SimpleRefreshListener(mapVerRefreshCallback));
+
+        if (!comboBoxSelect(cmbMappingVersions, prefs.get(PREFS_KEY_MAP_VERSION, "")) && cmbMappingVersions.getItemCount() > 0)
+            cmbMappingVersions.setSelectedIndex(0);
+
+        //MappingVersion mapver = (MappingVersion)cmbMappingVersions.getSelectedItem();
+        //btnMappingVerDownload.setEnabled((mapver != null && !mapver.getTarget(BONFiles.FG3_DOWNLOAD_CACHE).exists()));
+
+        cmbMappingVersions.addActionListener(e -> {
+            Object selected = cmbMappingVersions.getSelectedItem();
+            if (selected == null) {
+                prefs.remove(ModDeobfGui.PREFS_KEY_MAP_VERSION);
+            } else {
+                prefs.put(ModDeobfGui.PREFS_KEY_MAP_VERSION, selected.toString());
+            }
+        });
+
+        btnMappingVerDownload.addActionListener(e -> {
+            Map<MinecraftVersion, List<MappingVersion>> data = MappingVersions.getKnownVersions();
+            if (data.isEmpty()) {
+                JOptionPane.showMessageDialog(ModDeobfGui.this, "No known Mapping Versions, check console log for details, or check your internet connection.", "Could not load mappings", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            GuiDownloadNew gui = new GuiDownloadNew(mapVerRefreshCallback, data);
+            gui.setLocation(getLocation());
+            gui.setVisible(true);
+        });
+        //======================================================================================
+
+        masterProgress = new JProgressBar();
+
+        lblProgressText = new JLabel("Ready!");
+
+        JButton btnStart = new JButton("Go!");
+        btnStart.addMouseListener(new StartListener(this, inputJarLoc, outputJarLoc, cmbMinecraftVers, cmbMappingVersions, lblProgressText, masterProgress));
+
+        lblProgressText.setHorizontalAlignment(SwingConstants.CENTER);
+
+        GroupLayout gl_contentPane = new GroupLayout(contentPane);
+        gl_contentPane.setHorizontalGroup(
+            gl_contentPane.createParallelGroup(Alignment.TRAILING)
+                .addGroup(gl_contentPane.createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING)
+                        .addComponent(lblProgressText, GroupLayout.DEFAULT_SIZE, 531, Short.MAX_VALUE)
+                        .addComponent(btnStart, GroupLayout.DEFAULT_SIZE, 531, Short.MAX_VALUE)
+                        .addGroup(gl_contentPane.createSequentialGroup()
+                            .addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING, false)
+                                .addComponent(lblMappingsVer, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(lblMinecraftVer, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(lblInput, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(lblOutput, GroupLayout.DEFAULT_SIZE, 81, Short.MAX_VALUE)
+                            )
+                            .addPreferredGap(ComponentPlacement.RELATED)
+                            .addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING)
+                                .addComponent(inputJarLoc, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 349, Short.MAX_VALUE)
+                                .addComponent(outputJarLoc, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 349, Short.MAX_VALUE)
+                                .addGroup(Alignment.TRAILING, gl_contentPane.createSequentialGroup()
+                                    .addComponent(cmbMinecraftVers, 0, 255, Short.MAX_VALUE)
+                                    .addPreferredGap(ComponentPlacement.RELATED)
+                                    .addComponent(btnMinecraftVerDownload, GroupLayout.PREFERRED_SIZE, 91, GroupLayout.PREFERRED_SIZE)
+                                )
+                                .addGroup(Alignment.TRAILING, gl_contentPane.createSequentialGroup()
+                                    .addComponent(cmbMappingVersions, 0, 225, Short.MAX_VALUE)
+                                    .addPreferredGap(ComponentPlacement.RELATED)
+                                    .addComponent(btnMappingVerDownload, GroupLayout.PREFERRED_SIZE, 91, GroupLayout.PREFERRED_SIZE)
+                                )
+                            )
+                            .addPreferredGap(ComponentPlacement.RELATED)
+                            .addGroup(gl_contentPane.createParallelGroup(Alignment.TRAILING, false)
+                                .addComponent(btnMappingVerRefresh, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(btnMinecraftVerRefresh, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(btnBrouseOutput, GroupLayout.DEFAULT_SIZE, 91, Short.MAX_VALUE)
+                                .addComponent(btnBrouseInput, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            )
+                        )
+                        .addComponent(masterProgress, GroupLayout.DEFAULT_SIZE, 531, Short.MAX_VALUE))
+                    .addContainerGap())
+        );
+        gl_contentPane.setVerticalGroup(
+            gl_contentPane.createParallelGroup(Alignment.LEADING)
+                .addGroup(gl_contentPane.createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(gl_contentPane.createParallelGroup(Alignment.BASELINE)
+                        .addComponent(inputJarLoc, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addComponent(btnBrouseInput)
+                        .addComponent(lblInput)
+                    )
+                    .addPreferredGap(ComponentPlacement.RELATED)
+                    .addGroup(gl_contentPane.createParallelGroup(Alignment.BASELINE)
+                        .addComponent(lblOutput)
+                        .addComponent(outputJarLoc, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addComponent(btnBrouseOutput)
+                    )
+                    .addPreferredGap(ComponentPlacement.RELATED)
+                    .addGroup(gl_contentPane.createParallelGroup(Alignment.BASELINE)
+                        .addComponent(lblMinecraftVer)
+                        .addComponent(btnMinecraftVerRefresh)
+                        .addComponent(btnMinecraftVerDownload)
+                        .addComponent(cmbMinecraftVers, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    )
+                    .addPreferredGap(ComponentPlacement.RELATED)
+                    .addGroup(gl_contentPane.createParallelGroup(Alignment.BASELINE)
+                        .addComponent(lblMappingsVer)
+                        .addComponent(btnMappingVerRefresh)
+                        .addComponent(btnMappingVerDownload)
+                        .addComponent(cmbMappingVersions, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    )
+                    .addPreferredGap(ComponentPlacement.RELATED)
+                    .addComponent(btnStart)
+                    .addPreferredGap(ComponentPlacement.RELATED)
+                    .addComponent(masterProgress, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                    .addGap(7)
+                    .addComponent(lblProgressText)
+                    .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        contentPane.setLayout(gl_contentPane);
+    }
+
+    public JTextField getOutputField() {
+        return outputJarLoc;
+    }
+
+    @SuppressWarnings("unused")
+    private <T> List<T> comboBoxToList(JComboBox<T> comboBox) {
+        List<T> ret = new ArrayList<>();
+        for(int i = 0; i < comboBox.getItemCount(); i++) {
+            ret.add(comboBox.getItemAt(i));
+        }
+        return ret;
+    }
+
+    private <T> boolean comboBoxSelect(JComboBox<T> comboBox, String value) {
+        for(int i = 0; i < comboBox.getItemCount(); i++) {
+            T t = comboBox.getItemAt(i);
+            if (t != null && value.equals(t.toString())) {
+                comboBox.setSelectedIndex(i);
+                return true;
+            }
+        }
+        return false;
+    }
+}
